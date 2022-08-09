@@ -43,18 +43,26 @@ enum MLModelTrainer {
       contentDirectory: Constants.Path.trainingImagesDir ?? Bundle.main.bundleURL,
       processingOption: nil)
     // 2
-    let sessioParams = MLTrainingSessionParameters(
+    let sessionParams = MLTrainingSessionParameters(
       sessionDirectory: sessionDir,
       reportInterval: Constants.MLSession.checkpointInterval,
+      checkpointInterval: Constants.MLSession.checkpointInterval,
       iterations: Constants.MLSession.iterations)
     // 3
-    let modelParams = MLStyleTrasfer.ModelParameters(
+    let modelParams = MLStyleTransfer.ModelParameters(
       algorithm: .cnn,
-      validation: .content(validation),
+      validation: .content(validationImage),
       maxIterations: Constants.MLModelParam.maxIterations,
       textelDensity: Constants.MLModelParam.styleDensity,
       styleStrength: Constants.MLModelParam.styleStrength)
-    
+    // 4
+    guard let job = try? MLStyleTransfer.train(
+      trainingData: datasource,
+      parameters: modelParams,
+      sessionParameters: sessionParams) else {
+      onCompletion(nil)
+      return
+    }
     return onCompletion(nil)
   }
 }
