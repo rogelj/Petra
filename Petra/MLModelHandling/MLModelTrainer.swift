@@ -38,14 +38,14 @@ enum MLModelTrainer {
   private static var subscriptions = Set<AnyCancellable>()
   static func trainModel(using styleImage: URL, validationImage: URL, sessionDir: URL, onCompletion: @escaping (URL?) -> Void) {
     // 1
-    let datasource = MLStyleTransfer.DataSource.images(
+    let dataSource = MLStyleTransfer.DataSource.images(
       styleImage: styleImage,
       contentDirectory: Constants.Path.trainingImagesDir ?? Bundle.main.bundleURL,
       processingOption: nil)
     // 2
     let sessionParams = MLTrainingSessionParameters(
       sessionDirectory: sessionDir,
-      reportInterval: Constants.MLSession.checkpointInterval,
+      reportInterval: Constants.MLSession.reportInterval,
       checkpointInterval: Constants.MLSession.checkpointInterval,
       iterations: Constants.MLSession.iterations)
     // 3
@@ -57,7 +57,7 @@ enum MLModelTrainer {
       styleStrength: Constants.MLModelParam.styleStrength)
     // 4
     guard let job = try? MLStyleTransfer.train(
-      trainingData: datasource,
+      trainingData: dataSource,
       parameters: modelParams,
       sessionParameters: sessionParams) else {
       onCompletion(nil)
@@ -65,17 +65,18 @@ enum MLModelTrainer {
     }
     // 5
     let modelPath = sessionDir.appendingPathComponent(Constants.Path.modelFileName)
-    job.result.sink(receiveCompletion: {result in debugPrint(result) },
-                    receiveValue: {model in
+    job.result.sink(receiveCompletion: { result in
+      debugPrint(result)
+    }, receiveValue: { model in
       do {
         try model.write(to: modelPath)
+        onCompletion(modelPath)
         return
       } catch {
-      debugPrint("Error saving ML Model: \(error.localizedDescription)")
+        debugPrint("Error saving ML Model: \(error.localizedDescription)")
       }
       onCompletion(nil)
     })
     .store(in: &subscriptions)
-    return onCompletion(nil)
   }
 }

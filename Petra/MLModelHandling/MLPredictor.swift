@@ -37,6 +37,34 @@ import CoreML
 
 enum MLPredictor {
   static func predictUsingModel(_ modelPath: URL, inputImage: UIImage, onCompletion: @escaping (UIImage?) -> Void) {
-    return onCompletion(nil)
+    // 1
+    guard
+      let compiledModel = try? MLModel.compileModel(at: modelPath),
+      let mlModel = try? MLModel.init(contentsOf: compiledModel)
+    else {
+      debugPrint("Error reading the ML Model")
+      return onCompletion(nil)
+    }
+    // 2
+    let imageOptions: [MLFeatureValue.ImageOption: Any] = [
+      .cropAndScale: VNImageCropAndScaleOption.centerCrop.rawValue
+    ]
+    guard
+      let cgImage = inputImage.cgImage,
+      let imageConstraint = mlModel.modelDescription.inputDescriptionsByName["image"]?.imageConstraint,
+      let inputImg = try? MLFeatureValue(cgImage: cgImage, constraint: imageConstraint, options: imageOptions),
+      let inputImage = try? MLDictionaryFeatureProvider(dictionary: ["image": inputImg])
+    else {
+      return onCompletion(nil)
+    }
+    // 3
+    guard
+      let stylizedImage = try? mlModel.prediction(from: inputImage),
+      let imgBuffer = stylizedImage.featureValue(for: "stylizedImage")?.imageBufferValue
+    else {
+      return onCompletion(nil)
+    }
+    let stylizedUIImage = UIImage(withCVImageBuffer: imgBuffer)
+    return onCompletion(stylizedUIImage)
   }
 }
