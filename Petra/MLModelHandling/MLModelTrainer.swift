@@ -63,6 +63,19 @@ enum MLModelTrainer {
       onCompletion(nil)
       return
     }
+    // 5
+    let modelPath = sessionDir.appendingPathComponent(Constants.Path.modelFileName)
+    job.result.sink(receiveCompletion: {result in debugPrint(result) },
+                    receiveValue: {model in
+      do {
+        try model.write(to: modelPath)
+        return
+      } catch {
+      debugPrint("Error saving ML Model: \(error.localizedDescription)")
+      }
+      onCompletion(nil)
+    })
+    .store(in: &subscriptions)
     return onCompletion(nil)
   }
 }
